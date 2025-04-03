@@ -1,0 +1,17 @@
+services:
+  laravel:
+    build:
+      context: . 
+    volumes:
+      - ${APP_ROOT}:/var/www
+    working_dir: /var/www
+    ports:
+      - "8000:8000"
+    command: php artisan serve --host=0.0.0.0
+
+  composer:
+    image: composer
+    volumes:
+      - ${APP_ROOT}:/app
+    working_dir: /app
+    entrypoint: ["/bin/sh"]
