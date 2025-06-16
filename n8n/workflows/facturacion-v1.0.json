@@ -1,0 +1,285 @@
+{
+    "createdAt": "2025-06-14T17:25:14.649Z",
+    "updatedAt": "2025-06-16T02:16:19.000Z",
+    "id": "hnO5951FQNcLFC3t",
+    "name": "Facturacion Afip",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "triggerTimes": {
+            "item": [
+              {
+                "mode": "everyMinute"
+              }
+            ]
+          }
+        },
+        "name": "Trigger Cron",
+        "type": "n8n-nodes-base.cron",
+        "typeVersion": 1,
+        "position": [
+          -180,
+          20
+        ],
+        "id": "e905b58e-75ce-4f3b-a6d7-439753544987"
+      },
+      {
+        "parameters": {
+          "authentication": "serviceAccount",
+          "documentId": {
+            "__rl": true,
+            "value": "1wAD5PvegwjRuvMO7Tm7Rvzoo0Mzsq0L0p6uGD-JHPp8",
+            "mode": "list",
+            "cachedResultName": "PLANILLA DIARIA INGRESOS ARANCELES 2024 ",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wAD5PvegwjRuvMO7Tm7Rvzoo0Mzsq0L0p6uGD-JHPp8/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": 1033977996,
+            "mode": "list",
+            "cachedResultName": "DICIEMBRE",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wAD5PvegwjRuvMO7Tm7Rvzoo0Mzsq0L0p6uGD-JHPp8/edit#gid=1033977996"
+          },
+          "filtersUI": {
+            "values": [
+              {
+                "lookupColumn": "PROCESADA",
+                "lookupValue": "NO"
+              }
+            ]
+          },
+          "options": {
+            "returnAllMatches": "returnFirstMatch"
+          }
+        },
+        "name": "Leer hoja origen",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4,
+        "position": [
+          40,
+          20
+        ],
+        "id": "9656f22d-4c06-4d1b-aaf8-872bfe59c2d5",
+        "credentials": {
+          "googleApi": {
+            "id": "1AxjdX11c87AsS55",
+            "name": "Google Service Account account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "include": "except",
+          "options": {}
+        },
+        "name": "Set datos para API",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3,
+        "position": [
+          240,
+          20
+        ],
+        "id": "f93ba61e-414a-4ee7-a54a-2828cdedd06b"
+      },
+      {
+        "parameters": {
+          "url": "http://172.17.0.1:8000/afip/factura-c",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n    \"fecha\": \"{{ $json.FECHA }}\",\n    \"apellido\": \"{{ $json.APELLIDO }}\",\n    \"nombre\": \"{{ $json.NOMBRE }}\",\n    \"dni\": \"{{ $json.DNI }}\",\n    \"desde\": \"{{ $json.DESDE }}\",\n    \"hasta\": \"{{ $json.HASTA }}\",\n    \"importe\": \"{{ $json[' IMPORTE '] }}\"\n}",
+          "options": {}
+        },
+        "name": "Generar factura API",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          680,
+          20
+        ],
+        "id": "6061be07-29c0-4c86-9849-9f0371725956"
+      },
+      {
+        "parameters": {
+          "operation": "appendOrUpdate",
+          "documentId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "TU_GOOGLE_SHEET_ID_DESTINO"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "name",
+            "value": "Sheet1"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "A": "={{ $json.Cliente }}",
+              "B": "={{ $json.factura_numero }}",
+              "C": "={{ $json.fecha }}",
+              "D": "={{ $json.pdf_url }}",
+              "E": "Pendiente"
+            }
+          },
+          "options": {
+            "cellFormat": "USER_ENTERED"
+          }
+        },
+        "name": "Escribir hoja destino",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4,
+        "position": [
+          900,
+          20
+        ],
+        "id": "cb9e2be1-c739-471d-bdc5-e446896a298d"
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.pdf_url }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "name": "Descargar PDF",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1220,
+          0
+        ],
+        "id": "c9129b08-dea7-4fef-9dde-2554d5e1882d"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_SID/Messages.json",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "twilioApi",
+          "options": {}
+        },
+        "name": "Enviar WhatsApp (Twilio)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          1420,
+          0
+        ],
+        "id": "02918061-798d-40ee-8c35-497073455ffc"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst meses = { Ene: 0, Feb: 1, Mar: 2, Abr: 3, May: 4, Jun: 5, Jul: 6, Ago: 7, Sep: 8, Oct: 9, Nov: 10, Dic: 11 };\nconst anio = new Date().getFullYear();\n\nfor (const item of $input.all()) {\n  const desde = item.json[\"DESDE\"].trim().slice(0,3).toLowerCase().replace(/^./, c => c.toUpperCase())\n  const hasta = item.json[\"HASTA\"].trim().slice(0,3).toLowerCase().replace(/^./, c => c.toUpperCase())\n\n  const mesDesde = meses[desde];\n  const mesHasta = meses[hasta] || mesDesde;\n\n  if (mesDesde === undefined || mesHasta === undefined) throw new Error(\"Mes inválido\");\n\n  const fechaDesde = new Date(anio, mesDesde, 1);\n  const fechaHasta = new Date(anio, mesHasta + 1, 0);\n\n  const format = (fecha) => {\n    const yyyy = fecha.getFullYear();\n    const mm = String(fecha.getMonth() + 1).padStart(2, '0');\n    const dd = String(fecha.getDate()).padStart(2, '0');\n    return `${yyyy}${mm}${dd}`;\n  };\n\n  item.json.DESDE = format(fechaDesde);\n  item.json.HASTA = format(fechaHasta);\n}\n\nreturn $input.all();"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          460,
+          20
+        ],
+        "id": "a7544aea-f6e4-4d4c-b863-b1d87190c00e",
+        "name": "Code"
+      }
+    ],
+    "connections": {
+      "Trigger Cron": {
+        "main": [
+          [
+            {
+              "node": "Leer hoja origen",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Leer hoja origen": {
+        "main": [
+          [
+            {
+              "node": "Set datos para API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set datos para API": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generar factura API": {
+        "main": [
+          [
+            {
+              "node": "Escribir hoja destino",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Escribir hoja destino": {
+        "main": [
+          [
+            {
+              "node": "Descargar PDF",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Descargar PDF": {
+        "main": [
+          [
+            {
+              "node": "Enviar WhatsApp (Twilio)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Generar factura API",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": {
+      "Trigger Cron": [
+        {
+          "json": {}
+        }
+      ]
+    },
+    "versionId": "f0a2d1b2-3b1e-4519-861c-cc32dcd695f8",
+    "triggerCount": 0,
+    "tags": []
+  }
+  

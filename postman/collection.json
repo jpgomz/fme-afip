@@ -1,0 +1,110 @@
+{
+    "info": {
+      "name": "AFIP - Recibo C",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "WSAA - Obtener Token y Sign",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/soap+xml",
+              "type": "text"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{{cms}}"
+          },
+          "url": {
+            "raw": "{{base_url}}/ws/services/LoginCms",
+            "host": [
+              "{{base_url}}"
+            ],
+            "path": [
+              "ws", "services", "LoginCms"
+            ]
+          }
+        },
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "exec": [
+                "// Aqui debes agregar el script que genera el TRA.xml y lo firma usando certificado_base64 y clave_privada_base64",
+                "// Para simplificar, placeholder de firma"
+              ],
+              "type": "text/javascript"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "// Extraer token y sign del response XML",
+                "pm.environment.set('token', 'TOKEN_PLACEHOLDER');",
+                "pm.environment.set('sign', 'SIGN_PLACEHOLDER');"
+              ],
+              "type": "text/javascript"
+            }
+          }
+        ]
+      },
+      {
+        "name": "WSFEv1 - Emitir Recibo C",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "text/xml; charset=utf-8",
+              "type": "text"
+            },
+            {
+              "key": "SOAPAction",
+              "value": "http://ar.gov.afip.dif.FEV1/FECAESolicitar",
+              "type": "text"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <FECAESolicitar xmlns=\"http://ar.gov.afip.dif.FEV1/\">\n      <Auth>\n        <Token>{{token}}</Token>\n        <Sign>{{sign}}</Sign>\n        <Cuit>{{tu_cuit}}</Cuit>\n      </Auth>\n      <FeCAEReq>\n        <FeCabReq>\n          <CantReg>1</CantReg>\n          <PtoVta>{{punto_venta}}</PtoVta>\n          <CbteTipo>11</CbteTipo>\n        </FeCabReq>\n        <FeDetReq>\n          <FECAEDetRequest>\n            <Concepto>1</Concepto>\n            <DocTipo>99</DocTipo>\n            <DocNro>0</DocNro>\n            <CbteDesde>1</CbteDesde>\n            <CbteHasta>1</CbteHasta>\n            <CbteFch>{{fecha_actual}}</CbteFch>\n            <ImpTotal>100.00</ImpTotal>\n            <ImpTotConc>0.00</ImpTotConc>\n            <ImpNeto>100.00</ImpNeto>\n            <ImpOpEx>0.00</ImpOpEx>\n            <ImpIVA>0.00</ImpIVA>\n            <ImpTrib>0.00</ImpTrib>\n            <MonId>PES</MonId>\n            <MonCotiz>1.00</MonCotiz>\n          </FECAEDetRequest>\n        </FeDetReq>\n      </FeCAEReq>\n    </FECAESolicitar>\n  </soap:Body>\n</soap:Envelope>"
+          },
+          "url": {
+            "raw": "{{wsfev1_url}}",
+            "host": [
+              "{{wsfev1_url}}"
+            ]
+          }
+        },
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "exec": [
+                "// Calcular fecha actual yyyyMMdd",
+                "let fecha = new Date();",
+                "let fechaFormateada = fecha.getFullYear().toString() + (('0' + (fecha.getMonth()+1)).slice(-2)) + (('0' + fecha.getDate()).slice(-2));",
+                "pm.environment.set('fecha_actual', fechaFormateada);"
+              ],
+              "type": "text/javascript"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "// Test para mostrar respuesta de AFIP",
+                "console.log('Respuesta FECAESolicitar', pm.response.text());"
+              ],
+              "type": "text/javascript"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  

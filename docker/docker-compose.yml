@@ -8,6 +8,8 @@ services:
     ports:
       - "8000:8000"
     command: php artisan serve --host=0.0.0.0
+    networks:
+      - fme_afip_network
 
   composer:
     image: composer
@@ -15,3 +17,26 @@ services:
       - ${APP_ROOT}:/app
     working_dir: /app
     entrypoint: ["/bin/sh"]
+    networks:
+      - fme_afip_network
+
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - TZ=America/Argentina/Buenos_Aires
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - fme_afip_network
+
+networks:
+  fme_afip_network:
+    driver: bridge
